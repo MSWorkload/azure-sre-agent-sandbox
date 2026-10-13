@@ -135,6 +135,22 @@ kgs
 
 Verify all services have endpoints and the `store-front` has an external IP.
 
+### 2.4 — Open the Radar Kubernetes UI
+
+The lab installs [Radar](https://github.com/skyhook-io/radar) (Helm chart `skyhook/radar`) into the `radar` namespace of the AKS cluster. Radar gives a live topology and resource view of the cluster, and it is useful for watching the breakable scenarios in Part 3 and beyond.
+
+Radar is reached through a local port-forward only. No public endpoint is created:
+
+```bash
+kubectl port-forward svc/radar 9280:9280 -n radar
+```
+
+Then open http://localhost:9280.
+
+> **Security:** Radar has no built-in authentication in this configuration. Anyone who can reach the port-forward can view cluster resources with the permissions of the Radar service account. Keep the port-forward on your workstation, and stop it when you are done.
+
+To skip Radar, run `deploy.ps1 -SkipRadar`. To change the chart version, edit `$radarChartVersion` in `scripts/deploy.ps1` and redeploy.
+
 ---
 
 ## Part 3: Explore SRE Agent (Baseline)

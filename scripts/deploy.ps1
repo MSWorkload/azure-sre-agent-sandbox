@@ -52,6 +52,9 @@ param(
     [switch]$SkipSreAgent,
 
     [Parameter()]
+    [switch]$SkipRadar,
+
+    [Parameter()]
     [switch]$WhatIf,
 
     [Parameter()]
@@ -748,6 +751,25 @@ az aks get-credentials `
     --overwrite-existing
 
 Write-Host "  ✅ kubectl configured for cluster: $($outputs.aksClusterName.value)" -ForegroundColor Green
+
+# Install Radar (skyhook-io/radar Kubernetes UI) with Helm, executed inside the cluster
+if (-not $SkipRadar) {
+    $radarChartVersion = '1.16.0'
+    Write-Host "`n🛰️  Installing Radar $radarChartVersion (skyhook/radar)..." -ForegroundColor Yellow
+    $radarCommand = "helm repo add skyhook https://skyhook-io.github.io/helm-charts --force-update && helm repo update skyhook && helm upgrade --install radar skyhook/radar --version $radarChartVersion --namespace radar --create-namespace --wait --timeout 5m"
+    $radarResult = az aks command invoke `
+        --resource-group $resourceGroupName `
+        --name $outputs.aksClusterName.value `
+        --command $radarCommand `
+        --output json | ConvertFrom-Json
+
+    Write-Host $radarResult.logs
+    if ($radarResult.exitCode -ne 0) {
+        throw "Radar install failed with exit code $($radarResult.exitCode). See the logs above."
+    }
+    Write-Host "  ✅ Radar installed in namespace 'radar'" -ForegroundColor Green
+    Write-Host "  • Radar access:     kubectl port-forward svc/radar 9280:9280 -n radar  ->  http://localhost:9280" -ForegroundColor White
+}
 
 $sreAgentManagedIdentityPrincipalId = ''
 if ($outputs.PSObject.Properties.Name -contains 'sreAgentManagedIdentityPrincipalId') {
