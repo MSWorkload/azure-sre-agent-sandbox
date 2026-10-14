@@ -20,11 +20,14 @@ param deploySreAgent = true
 // Default action group for incident routing (add webhook at deploy time)
 param deployActionGroup = true
 
-// AKS Configuration - cost-optimized for demo
-param systemNodeVmSize = 'Standard_D2s_v5'
-param userNodeVmSize = 'Standard_D2s_v5'
-param systemNodeCount = 2
-param userNodeCount = 3
+// AKS Configuration - cost-optimized for demo (B2as_v2 burstable on-demand pools + D2as_v5 Spot pool)
+param systemNodeVmSize = 'Standard_B2as_v2'
+param userNodeVmSize = 'Standard_B2as_v2'
+param systemNodeCount = 1
+param userNodeCount = 1
+param enableSpotNodePool = true
+param spotNodeVmSize = 'Standard_D2as_v5'
+param spotNodeMaxCount = 4
 
 // Tags
 param tags = {

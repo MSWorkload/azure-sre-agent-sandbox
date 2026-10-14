@@ -201,6 +201,21 @@ spec:
     spec:
       nodeSelector:
         nodepool-type: user
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - key: kubernetes.azure.com/scalesetpriority
+                    operator: In
+                    values:
+                      - spot
+      tolerations:
+        - key: kubernetes.azure.com/scalesetpriority
+          operator: Equal
+          value: spot
+          effect: NoSchedule
       containers:
         - name: product-service
           image: ghcr.io/azure-samples/aks-store-demo/product-service:2.2.0
@@ -265,6 +280,21 @@ spec:
     spec:
       nodeSelector:
         nodepool-type: user
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - key: kubernetes.azure.com/scalesetpriority
+                    operator: In
+                    values:
+                      - spot
+      tolerations:
+        - key: kubernetes.azure.com/scalesetpriority
+          operator: Equal
+          value: spot
+          effect: NoSchedule
       containers:
         - name: order-service
           image: ghcr.io/azure-samples/aks-store-demo/order-service:2.2.0
@@ -345,6 +375,21 @@ spec:
     spec:
       nodeSelector:
         nodepool-type: user
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - key: kubernetes.azure.com/scalesetpriority
+                    operator: In
+                    values:
+                      - spot
+      tolerations:
+        - key: kubernetes.azure.com/scalesetpriority
+          operator: Equal
+          value: spot
+          effect: NoSchedule
       containers:
         - name: makeline-service
           image: ghcr.io/azure-samples/aks-store-demo/makeline-service:2.2.0
@@ -421,6 +466,21 @@ spec:
     spec:
       nodeSelector:
         nodepool-type: user
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - key: kubernetes.azure.com/scalesetpriority
+                    operator: In
+                    values:
+                      - spot
+      tolerations:
+        - key: kubernetes.azure.com/scalesetpriority
+          operator: Equal
+          value: spot
+          effect: NoSchedule
       containers:
         - name: store-front
           image: ghcr.io/azure-samples/aks-store-demo/store-front:2.2.0
@@ -457,6 +517,9 @@ kind: Service
 metadata:
   name: store-front
   namespace: pets
+  annotations:
+    # Route LB traffic to the NodePort instead of DSR floating IP (needed for Internet reachability; see docs/LAB-GUIDE.md)
+    service.beta.kubernetes.io/azure-disable-load-balancer-floating-ip: "true"
 spec:
   type: LoadBalancer
   selector:
@@ -488,6 +551,21 @@ spec:
     spec:
       nodeSelector:
         nodepool-type: user
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - key: kubernetes.azure.com/scalesetpriority
+                    operator: In
+                    values:
+                      - spot
+      tolerations:
+        - key: kubernetes.azure.com/scalesetpriority
+          operator: Equal
+          value: spot
+          effect: NoSchedule
       containers:
         - name: store-admin
           image: ghcr.io/azure-samples/aks-store-demo/store-admin:2.2.0
@@ -524,6 +602,9 @@ kind: Service
 metadata:
   name: store-admin
   namespace: pets
+  annotations:
+    # Route LB traffic to the NodePort instead of DSR floating IP (needed for Internet reachability; see docs/LAB-GUIDE.md)
+    service.beta.kubernetes.io/azure-disable-load-balancer-floating-ip: "true"
 spec:
   type: LoadBalancer
   selector:
@@ -555,6 +636,21 @@ spec:
     spec:
       nodeSelector:
         nodepool-type: user
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - key: kubernetes.azure.com/scalesetpriority
+                    operator: In
+                    values:
+                      - spot
+      tolerations:
+        - key: kubernetes.azure.com/scalesetpriority
+          operator: Equal
+          value: spot
+          effect: NoSchedule
       containers:
         - name: virtual-customer
           image: ghcr.io/azure-samples/aks-store-demo/virtual-customer:2.2.0
@@ -594,6 +690,21 @@ spec:
     spec:
       nodeSelector:
         nodepool-type: user
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - key: kubernetes.azure.com/scalesetpriority
+                    operator: In
+                    values:
+                      - spot
+      tolerations:
+        - key: kubernetes.azure.com/scalesetpriority
+          operator: Equal
+          value: spot
+          effect: NoSchedule
       containers:
         - name: virtual-worker
           image: ghcr.io/azure-samples/aks-store-demo/virtual-worker:2.2.0

@@ -2,15 +2,16 @@
 
 This document provides estimated costs for running the Azure SRE Agent Demo Lab.
 
-> **Note:** Costs are estimates based on US East 2 region pricing as of 2024. Actual costs may vary based on region, usage patterns, and Azure pricing changes.
+> **Note:** VM estimates use eastus2 Linux retail prices checked October 13, 2026. Actual costs vary by region, workload, Spot market price, and Azure pricing changes. Monthly VM estimates use 730 hours.
 
 ## Quick Cost Summary
 
 | Component | Daily Cost | Monthly Cost | Notes |
 |-----------|------------|--------------|-------|
 | **AKS Control Plane** | ~$2.40 | $73 | Standard tier with SLA |
-| **AKS Nodes (System)** | ~$4.70 | ~$140 | 2x Standard_D2s_v5 |
-| **AKS Nodes (User)** | ~$7.00 | ~$210 | 3x Standard_D2s_v5 |
+| **AKS Nodes (System)** | ~$1.80 | ~$55 | 1x Standard_B2as_v2 (`systembs`) |
+| **AKS Nodes (User)** | ~$1.80 | ~$55 | 1x Standard_B2as_v2 (`userbs2`, 40-pod limit) |
+| **AKS Spot pool** | ~$0.38 | ~$12 | 1x Standard_D2as_v5 Spot (`spot`), autoscale 1-4 |
 | **Container Registry** | ~$0.17 | ~$5 | Basic tier |
 | **Log Analytics** | ~$1-2 | ~$30-50 | Based on data ingestion |
 | **Application Insights** | ~$0.30-0.70 | ~$10-20 | Based on data volume |
@@ -19,8 +20,8 @@ This document provides estimated costs for running the Azure SRE Agent Demo Lab.
 | **Azure Monitor log alerts** | Usage-based | Varies | Four 1-minute rules enabled by default |
 | **Key Vault** | ~$0.10 | ~$3 | Minimal operations |
 | **SRE Agent** | ~$10-13 | ~$292-400 | Base + execution costs |
-| **Total (without SRE Agent)** | **~$22-28** | **~$650-850** | |
-| **Total (with SRE Agent)** | **~$32-38** | **~$950-1,150** | |
+| **Total (without SRE Agent)** | **~$20-26** | **~$575-775** | |
+| **Total (with SRE Agent)** | **~$30-36** | **~$875-1,075** | |
 
 ## Detailed Cost Breakdown
 
@@ -37,14 +38,20 @@ This document provides estimated costs for running the Azure SRE Agent Demo Lab.
 
 | Node Pool | VM Size | Count | Unit Cost | Monthly Cost |
 |-----------|---------|-------|-----------|--------------|
-| System | Standard_D2s_v5 | 2 | $70.08/month | $140.16 |
-| User | Standard_D2s_v5 | 3 | $70.08/month | $210.24 |
+| `systembs` (system) | Standard_B2as_v2 | 1 (autoscale 1-3) | $54.90/month | $54.90 |
+| `userbs2` (user) | Standard_B2as_v2 | 1 (autoscale 1-2, 40 pods/node) | $54.90/month | $54.90 |
+| `spot` (user, Spot) | Standard_D2as_v5 Spot | 1 (autoscale 1-4) | ~$11.62/month | ~$11.62 |
+
+At the prices checked on October 13, 2026, B2as_v2 on-demand was $0.0752/hour and D2as_v5 Spot was about $0.0159/hour in eastus2. This layout is about **$121/month for VM compute**, versus about **$188/month** for the previous three-node D2as_v5 on-demand layout (about $67/month or 36% less). Spot rates change; extra autoscaled nodes add approximately $54.90/month per B2as_v2 node or $11.62/month per D2as_v5 Spot node at those rates.
+
+The stateless store services in `k8s/base/application.yaml` prefer the Spot pool and tolerate its `kubernetes.azure.com/scalesetpriority=spot:NoSchedule` taint. Their preferred (not required) affinity lets them fall back to the on-demand `userbs2` pool if Spot capacity is evicted or unavailable. MongoDB, RabbitMQ, Radar, and core platform services remain on-demand.
 
 **Cost-Saving Options:**
-- Use `Standard_D2as_v5` (AMD) for ~10% savings
-- Reduce node count during non-demo hours
-- Use Reserved Instances for 30-55% savings (if running long-term)
-- Use Spot instances for non-critical workloads
+- `Standard_B2as_v2` (AMD) provides 2 vCPUs and 8 GiB RAM with a burstable CPU model. The current node utilization is low enough for this demo layout; monitor CPU credits and performance under sustained load.
+- `Standard_B2s` is cheaper still, but has only 4 GiB of RAM and does not fit the lab workload.
+- Scale the on-demand pools down outside demo hours.
+- Use Reserved Instances or Savings Plans for 30-55% savings if you run long-term.
+- Use the `spot` pool for interruptible workloads.
 
 ### Azure Container Registry
 
@@ -132,11 +139,12 @@ SRE Agent uses Azure AI Units (AAU) billing:
 
 2. **Scale down nodes**
    ```bash
-   az aks nodepool scale --resource-group rg-srelab-eastus2 \
-       --cluster-name aks-srelab-dev --name workload --node-count 1
+   az aks nodepool update --resource-group rg-srelab-eastus2 \
+       --cluster-name aks-srelab --name userbs2 \
+       --update-cluster-autoscaler --min-count 1 --max-count 1
    ```
 
-3. **Use spot instances** for user node pool
+3. **Keep stateless replicas on Spot** (`spot`) for lower compute cost; the manifests retain on-demand fallback for evictions.
 
 4. **Disable optional components**
    - Set `deployObservability = false` to skip Grafana/Prometheus

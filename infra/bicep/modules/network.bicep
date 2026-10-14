@@ -28,6 +28,27 @@ param servicesSubnetPrefix string = '10.0.4.0/24'
 // RESOURCES
 // =============================================================================
 
+// This NSG is attached to the AKS subnet by the environment's network policy.
+resource aksNsg 'Microsoft.Network/networkSecurityGroups@2024-01-01' existing = {
+  name: '${vnetName}-snet-aks-nsg-${location}'
+}
+
+resource allowNodePorts 'Microsoft.Network/networkSecurityGroups/securityRules@2024-01-01' = {
+  parent: aksNsg
+  name: 'allow-internet-nodeports'
+  properties: {
+    description: 'Allow public LoadBalancer traffic to Kubernetes NodePorts'
+    priority: 1000
+    direction: 'Inbound'
+    access: 'Allow'
+    protocol: 'Tcp'
+    sourceAddressPrefix: 'Internet'
+    sourcePortRange: '*'
+    destinationAddressPrefix: aksSubnetPrefix
+    destinationPortRange: '30000-32767'
+  }
+}
+
 resource vnet 'Microsoft.Network/virtualNetworks@2024-01-01' = {
   name: vnetName
   location: location

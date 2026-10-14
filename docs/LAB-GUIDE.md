@@ -133,7 +133,7 @@ The application is a multi-service e-commerce platform:
 kgs
 ```
 
-Verify all services have endpoints and the `store-front` has an external IP.
+Verify all services have endpoints and the `store-front` has an external IP. The public `store-front` and `store-admin` services disable Azure Load Balancer floating IP; the AKS subnet NSG must allow inbound TCP NodePorts (30000-32767) for Internet traffic to reach them.
 
 ### 2.4 — Open the Radar Kubernetes UI
 

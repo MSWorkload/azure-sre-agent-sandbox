@@ -33,6 +33,15 @@ param systemNodeCount int
 @description('User node pool node count')
 param userNodeCount int
 
+@description('Add a Spot user node pool for interruptible workloads; Spot instances can be evicted')
+param enableSpotNodePool bool
+
+@description('VM size for the Spot node pool')
+param spotNodeVmSize string
+
+@description('Maximum node count for the Spot node pool')
+param spotNodeMaxCount int
+
 @description('Subnet ID for AKS nodes')
 param vnetSubnetId string
 
@@ -86,42 +95,72 @@ resource aks 'Microsoft.ContainerService/managedClusters@2024-02-01' = {
       enablePrivateCluster: false // IMPORTANT: Must be false for SRE Agent
     }
 
-    // System node pool
-    agentPoolProfiles: [
-      {
-        name: 'system'
-        count: systemNodeCount
-        vmSize: systemNodeVmSize
-        osType: 'Linux'
-        osSKU: 'AzureLinux'
-        mode: 'System'
-        vnetSubnetID: vnetSubnetId
-        enableAutoScaling: true
-        minCount: 1
-        maxCount: 5
-        nodeTaints: [
-          'CriticalAddonsOnly=true:NoSchedule'
-        ]
-        nodeLabels: {
-          'nodepool-type': 'system'
+    // Burstable on-demand pools host stateful/core workloads; Spot hosts stateless app replicas.
+    agentPoolProfiles: concat(
+      [
+        {
+          name: 'systembs'
+          osSKU: 'Ubuntu'
+          count: systemNodeCount
+          vmSize: systemNodeVmSize
+          osType: 'Linux'
+          mode: 'System'
+          vnetSubnetID: vnetSubnetId
+          enableAutoScaling: true
+          minCount: 1
+          maxCount: 3
+          nodeTaints: [
+            'CriticalAddonsOnly=true:NoSchedule'
+          ]
+          nodeLabels: {
+            'nodepool-type': 'system'
+          }
         }
-      }
-      {
-        name: 'workload'
-        count: userNodeCount
-        vmSize: userNodeVmSize
-        osType: 'Linux'
-        osSKU: 'AzureLinux'
-        mode: 'User'
-        vnetSubnetID: vnetSubnetId
-        enableAutoScaling: true
-        minCount: 1
-        maxCount: 10
-        nodeLabels: {
-          'nodepool-type': 'user'
+        {
+          name: 'userbs2'
+          osSKU: 'Ubuntu'
+          count: userNodeCount
+          vmSize: userNodeVmSize
+          osType: 'Linux'
+          mode: 'User'
+          vnetSubnetID: vnetSubnetId
+          maxPods: 40
+          enableAutoScaling: true
+          minCount: 1
+          maxCount: 2
+          nodeLabels: {
+            'nodepool-type': 'user'
+          }
         }
-      }
-    ]
+      ],
+      enableSpotNodePool
+        ? [
+            {
+              name: 'spot'
+              osSKU: 'Ubuntu'
+              count: 1
+              vmSize: spotNodeVmSize
+              osType: 'Linux'
+              mode: 'User'
+              vnetSubnetID: vnetSubnetId
+              enableAutoScaling: true
+              minCount: 1
+              maxCount: spotNodeMaxCount
+              scaleSetPriority: 'Spot'
+              scaleSetEvictionPolicy: 'Delete'
+              spotMaxPrice: -1
+              // Tainted so only pods with a matching toleration are scheduled here
+              nodeTaints: [
+                'kubernetes.azure.com/scalesetpriority=spot:NoSchedule'
+              ]
+              nodeLabels: {
+                'nodepool-type': 'user'
+                'kubernetes.azure.com/scalesetpriority': 'spot'
+              }
+            }
+          ]
+        : []
+    )
 
     // Add-ons and monitoring
     addonProfiles: {

@@ -53,31 +53,48 @@ param kubernetesVersion string = ''
 
 @description('AKS system node pool VM size')
 @allowed([
+  'Standard_B2as_v2'
   'Standard_D2s_v5'
   'Standard_D4s_v5'
   'Standard_D2as_v5'
   'Standard_D4as_v5'
 ])
-param systemNodeVmSize string = 'Standard_D2s_v5'
+param systemNodeVmSize string = 'Standard_B2as_v2'
 
 @description('AKS user node pool VM size for workloads')
 @allowed([
+  'Standard_B2as_v2'
   'Standard_D2s_v5'
   'Standard_D4s_v5'
   'Standard_D2as_v5'
   'Standard_D4as_v5'
 ])
-param userNodeVmSize string = 'Standard_D2s_v5'
+param userNodeVmSize string = 'Standard_B2as_v2'
+
+@description('Add a Spot user node pool for interruptible workloads; Spot instances can be evicted')
+param enableSpotNodePool bool = true
+
+@description('AKS Spot node pool VM size (about 80% cheaper than on-demand; can be evicted)')
+@allowed([
+  'Standard_D2as_v5'
+  'Standard_D4as_v5'
+])
+param spotNodeVmSize string = 'Standard_D2as_v5'
+
+@description('Maximum node count for the Spot node pool')
+@minValue(1)
+@maxValue(10)
+param spotNodeMaxCount int = 4
 
 @description('System node pool node count')
 @minValue(1)
 @maxValue(5)
-param systemNodeCount int = 2
+param systemNodeCount int = 1
 
 @description('User node pool node count')
 @minValue(1)
 @maxValue(10)
-param userNodeCount int = 3
+param userNodeCount int = 1
 
 @description('Tags to apply to all resources')
 param tags object = {
@@ -185,6 +202,9 @@ module aks 'modules/aks.bicep' = {
     userNodeVmSize: userNodeVmSize
     systemNodeCount: systemNodeCount
     userNodeCount: userNodeCount
+    enableSpotNodePool: enableSpotNodePool
+    spotNodeVmSize: spotNodeVmSize
+    spotNodeMaxCount: spotNodeMaxCount
     vnetSubnetId: network.outputs.aksSubnetId
     logAnalyticsWorkspaceId: logAnalytics.outputs.workspaceId
     acrId: containerRegistry.outputs.acrId
