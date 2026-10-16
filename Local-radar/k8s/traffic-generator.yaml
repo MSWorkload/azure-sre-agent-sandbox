@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: traffic-generator
+  namespace: default
+  labels:
+    app: traffic-generator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: traffic-generator
+  template:
+    metadata:
+      labels:
+        app: traffic-generator
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+        - name: traffic-generator
+          image: localhost/local-radar/traffic-generator:0.1.0
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: REQUEST_URL
+              value: http://nginx.default.svc.cluster.local/
+            - name: REQUEST_INTERVAL_SECONDS
+              value: "1"
+            - name: OTEL_EXPORTER_OTLP_METRICS_ENDPOINT
+              value: http://otel-collector.local-radar.svc.cluster.local:4318/v1/metrics
+            - name: OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+              value: http://otel-collector.local-radar.svc.cluster.local:4318/v1/traces
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
